@@ -27,11 +27,14 @@ contract ShareMarketPlace is IShareMarketPlace {
         edjuk8Token = Edjuk8Token(edjuk8TokenAddress);
     }
 
+    // ADMIN FUNCTIONS
+
     function setCourseHandler(address courseHandlerAddress) public {
         courseHandler = ICourseHandler(courseHandlerAddress);
     }
 
-    // only callable by the course handler
+    // EXTERNAL FUNCTIONS
+
     function sellShares(address user, uint256 shareAmount, uint256 courseId, uint256 price)
         external
         onlyCourseHandler
@@ -53,13 +56,11 @@ contract ShareMarketPlace is IShareMarketPlace {
                 courseName: courseHandler.getCourseById(courseId).name,
                 courseOwner: courseHandler.getCourseById(courseId).ownerName,
                 imageURI: courseHandler.getCourseById(courseId).imageURI,
-                valid: true, // to keep track of if a user share wasnt purchased but the dropped by the user
+                valid: true, // to keep track of if a user share wasnt purchased but the canceled by the user
                 purchased: address(0),
                 ID: shareListings
             })
         );
-
-        emit CourseSharesListed(user, courseId, shareAmount);
 
         return shareListings;
     }
@@ -91,20 +92,17 @@ contract ShareMarketPlace is IShareMarketPlace {
         allListings[listingIndex].purchased = msg.sender;
 
         courseHandler.shareUpdate(listing.seller, msg.sender, listing.courseId, listing.shareAmount);
-
-        emit SharesPurchased(msg.sender, listingId, listing.courseId, listing.shareAmount);
     }
 
-    // drop a users share sale
     function canceShareListing(uint256 listingId) external {
         if (listingId > shareListings || listingId == 0) {
             revert Errors.Edjuk8__ListingDoesNotExist();
         }
 
         uint256 listingIndex = listingId - 1;
-        Types.ShareListing memory listing = allListings[listingIndex - 1];
+        Types.ShareListing memory listing = allListings[listingIndex];
 
-        if (msg.sender != listing.seller || msg.sender != address(courseHandler)) {
+        if (msg.sender != listing.seller) {
             revert Errors.Edjuk8__InvalidCaller();
         }
 
@@ -119,8 +117,8 @@ contract ShareMarketPlace is IShareMarketPlace {
         courseHandler.shareUpdate(listing.seller, listing.seller, listing.courseId, listing.shareAmount);
     }
 
-    // getter functions
-    // try8 and and add paginaion to each to fetch by index and stuff
+    // GETTER FUNCTIONS
+
     function getAllShareListings() external view returns (Types.ShareListing[] memory) {
         return allListings;
     }

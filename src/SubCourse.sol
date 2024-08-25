@@ -26,8 +26,9 @@ contract SubCourse is ISubCourse {
     mapping(address user => bool enrolled) _userEnrolled;
     mapping(address user => bool reviewed) _reviewed;
 
-    // 200 by defaul on finsihing course, the idea for the future is for it to be flexible by admins
-    // where they can have codes like 321 for passing an exam or something and can update it at will
+    // 200 by default on finsihing course
+    // The idea for the future is for it to be flexible by admins
+    // Where they can have codes like 321 for passing an exam or something and can update it at will per user
     mapping(address user => uint256 amount) _completedTokenStatus;
 
     constructor(
@@ -57,15 +58,9 @@ contract SubCourse is ISubCourse {
         edjuk8Token = IERC20(edjuk8TokenAddress);
     }
 
-    // lessonType : true -> video && false -> article
-    // siteLessonURI doesnt reveal the lesson itself rather it sends it to somewhere that has the lesson encrypted
-    // e.g the edjuk8 site, your own personal site and then you could implement checks on your own site to make sure the user
-    // has enrolled for the course before decrypting the course detail to them
-    // lesson Length is basically average time to compleet the lesson
     function uploadNewLesson(string memory name, bool lessonType, string memory gatedLessonURI, uint256 lessonLength)
         external
     {
-        // /checks
         if (msg.sender != subCourse.owner) {
             revert Errors.Edjuk8__NotCourseOwner();
         }
@@ -120,18 +115,20 @@ contract SubCourse is ISubCourse {
         reviews.push(Types.Review({rating: rating, comment: comment, user: msg.sender}));
     }
 
-    // for token status check mapping for definition
     function issueCompletedTokenStatus(address user, uint256 status) external {
         if (status != 200) {
             if (msg.sender != subCourse.owner) {
                 revert Errors.Edjuk8__NotCourseOwner();
             }
         }
+        if (!_userEnrolled[user]) {
+            revert Errors.Edjuk8__UserNotEnrolled();
+        }
 
         _completedTokenStatus[user] = status;
     }
 
-    // getter functions
+    // Getter Functions
 
     function getDetails() external view returns (Types.SubCourse memory) {
         return subCourse;

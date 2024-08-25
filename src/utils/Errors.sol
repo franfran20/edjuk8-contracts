@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.24;
 
-contract Errors {
+library Errors {
     error Edjuk8__InvalidSigDeadline();
     error Edjuk8__AlreadyRegistered();
     error Edjuk8__UsernameTaken();
@@ -31,15 +31,12 @@ contract Errors {
     error Edjuk8__InsufficientBalanceOrAllowanceForListing();
     error SharesToCashInCannotBeZero();
 
-    // market place
     error Edjuk8__UserCourseSharesAlreadyOnSale();
     error Edjuk8__CantBuyYourOwnShares();
     error Edjuk8__ListingDoesNotExist();
     error Edjuk8__ListingNotAvailableAnymore();
     error Edjuk8__ListingValuationNotMet();
     error Edjuk8__InvalidCaller();
-
-    // subcourse
 
     error Edjuk8__MaxAmountOfLessonsCreated();
     error Edjuk8__UserAlreadyEnrolled();

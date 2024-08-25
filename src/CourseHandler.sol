@@ -2,14 +2,10 @@
 
 pragma solidity 0.8.24;
 
-// course handler function allows:
-//   users to register on the platform
-//   deploys course contract NFTs
-//   deploys course ERC20 token shares with a fixed supply
-
 import {ICourseHandler} from "./interfaces/ICourseHandler.sol";
 import {IShareMarketPlace} from "./interfaces/IShareMarketPlace.sol";
-import {ISubCourseDeployer} from "./interfaces/ISubCourseDeployer.sol";
+import {SubCourseDeployer} from "./SubCourseDeployer.sol";
+
 import {Types} from "./utils/Types.sol";
 import {MetaTx} from "./utils/MetaTx.sol";
 import {Errors} from "./utils/Errors.sol";
@@ -28,11 +24,11 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
     Types.Course[] allCourses;
     IShareMarketPlace shareMarketPlace;
     IERC20 edjuk8Token;
-    ISubCourseDeployer subCourseDeployer;
+    SubCourseDeployer subCourseDeployer;
 
     uint256 public constant CREATION_SHARE = 100e4;
     uint256 constant MAX_USERNAME_CHAR = 21;
-    string constant BASE_COURSE_URI = "https://edjuk8-stuff/learn/courses/";
+    string BASE_COURSE_URI = "https://edjuk8-stuff/learn/courses/";
 
     uint256 public courseIds;
     uint256 courseCreationFee;
@@ -69,29 +65,28 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
 
     //////// ADMIN FUNCTIONS ////////
 
-    // set the market place contract addr
     function setCourseMarketPlace(address _shareMarketPlace) external onlyDev {
         shareMarketPlace = IShareMarketPlace(_shareMarketPlace);
     }
 
-    // set the subCourse deployer
     function setSubCourseDeployer(address subCourseDeployerAddress) external onlyDev {
-        subCourseDeployer = ISubCourseDeployer(subCourseDeployerAddress);
+        subCourseDeployer = SubCourseDeployer(subCourseDeployerAddress);
     }
 
-    // set the course creation fee if needed
     function setCourseCreationFee(uint256 fee) external onlyDev {
         courseCreationFee = fee;
     }
 
-    //////// USER FUNCTIONS ////
+    function setBaseCourseURI(string memory baseCourseURI) external onlyDev {
+        BASE_COURSE_URI = baseCourseURI;
+    }
 
-    // register
+    //////// USER FUNCTIONS /////////
+
     function registerUser(Types.Register memory params) external {
         _registerUser(msg.sender, params.username);
     }
 
-    // register with sig
     function registerUserWithSig(Types.RegisterWithSig memory params) external {
         _user[params.user].nonce++;
 
@@ -101,12 +96,10 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         _registerUser(params.user, params.username);
     }
 
-    // create course
     function createCourse(Types.CreateCourse memory params) external {
         _createCourse(params.name, params.description, params.imageURI, params.genre, msg.sender);
     }
 
-    // create course with sig
     function createCourseWithSig(Types.CreateCourseWithSig memory params) external {
         _user[params.user].nonce++;
 
@@ -116,13 +109,11 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         _createCourse(params.name, params.description, params.imageURI, params.genre, params.user);
     }
 
-    // sell course share
     function sellCourseShare(Types.SellShare memory params) external nonReentrant courseMustExist(params.courseId) {
         _sellCourseShare(params.courseId, params.sharesAmount, params.price, msg.sender);
     }
 
-    // sell course share with sig
-    function sellCourseShareWithSig(Types.SellShareWIthSig memory params)
+    function sellCourseShareWithSig(Types.SellShareWithSig memory params)
         external
         nonReentrant
         courseMustExist(params.courseId)
@@ -135,7 +126,6 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         _sellCourseShare(params.courseId, params.sharesAmount, params.price, params.user);
     }
 
-    // cash in course shares
     function cashInCourseShares(Types.CashInCourseShare memory params)
         external
         courseMustExist(params.courseId)
@@ -144,7 +134,6 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         _cashInCourseShares(params.courseId, params.sharesAmount, msg.sender);
     }
 
-    // cashin course shares with sig
     function cashInCourseSharesWithSig(Types.CashInCourseShareWithSig memory params)
         external
         courseMustExist(params.courseId)
@@ -160,7 +149,6 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
 
     ////////// ONLY CALLABLE BY SHARE MARKET PLACE //////////
 
-    // after a successful purchase from the buyer in the marketplace
     function shareUpdate(address seller, address buyer, uint256 courseId, uint256 sharesAmount) external nonReentrant {
         require(msg.sender == address(shareMarketPlace), "!marketPlace");
         _userSharesLocked[seller][courseId] = 0;
@@ -171,15 +159,14 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
     }
 
     /// ONLY CALLABLE BY THE SUBCOURSE OF A COURSE ///////
+
     function updateSubCourseEnrollment(uint256 courseId, uint256 enrollmentPrice) external courseMustExist(courseId) {
         bool callerAllowed = _checkCallerIsASubCourseForTheCourseId(courseId);
         if (!callerAllowed) revert Errors.Edjuk8__CallerIsNotSubCourse();
 
-        // that it updates the share earnings and user earnings with the right percentage of their current share
         uint256 courseIndex = courseId - 1;
         address owner = allCourses[courseIndex].owner;
 
-        // ((shares / 1e4 ) * enrollMentPrice / 100) == ((shares * enrollmentPrice) / 100e4)
         uint256 ownerShare = _userCourseShares[owner][courseId];
         uint256 shareHolders = CREATION_SHARE - ownerShare;
 
@@ -188,11 +175,8 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         allCourses[courseIndex].studentsEnrolled += 1;
     }
 
-    // ONLY CALLABLE BY SUBCOURSE DEPLOYER
+    //////  INTERNAL/PRIVATE FUNCTIONS //////
 
-    //////// UPDATE FUNCTIONS //////
-
-    // // manages share holder count on transfereence of shares between users
     function _updateShareHolders(address from, address to, uint256 courseId, uint256 sharesAmount) internal {
         uint256 courseIndex = courseId - 1;
 
@@ -220,22 +204,6 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         }
     }
 
-    /////// HELPER FUNCTIONS //////
-    function _checkCallerIsASubCourseForTheCourseId(uint256 courseId) internal view returns (bool) {
-        Types.SubCourseDetail[] memory subCourses = subCourseDeployer.getSubCourses(courseId); // replace this line with getting teh subCourses from the subcourse deployer
-        for (uint256 i = 0; i < subCourses.length; i++) {
-            if (subCourses[i].subCourseAddress == msg.sender) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function _constructCourseURI(uint256 courseId) public pure returns (string memory) {
-        return string.concat(BASE_COURSE_URI, courseId.toString());
-    }
-
-    // // WE WERE WORKING ON PUTTING USERS COURSES WITH SHARES INTO THE USERS OWNED COURSES LIST
     function _removeCourseFromOwnedCourses(address user, uint256 courseId) internal {
         uint256 ownedCoursesLength = _user[user].ownedCourses.length;
         bool found = false;
@@ -253,8 +221,31 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         if (!found) revert Errors.Edjuk8__NotCourseOwner();
     }
 
-    // /////// CORE LOGIC FUNCTIONS //////
-    // Private Functions
+    /////// HELPER FUNCTIONS //////
+
+    function _checkCallerIsASubCourseForTheCourseId(uint256 courseId) internal view returns (bool) {
+        Types.SubCourseDetail[] memory subCourses = subCourseDeployer.getSubCourses(courseId);
+        for (uint256 i = 0; i < subCourses.length; i++) {
+            if (subCourses[i].subCourseAddress == msg.sender) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function _constructCourseURI(uint256 courseId) internal view returns (string memory) {
+        return string.concat(BASE_COURSE_URI, courseId.toString());
+    }
+
+    function _checkIsSigner(bytes32 structHash, uint8 v, bytes32 r, bytes32 s, address user) private view {
+        address signer = ECDSA.recover(_hashTypedDataV4(structHash), v, r, s);
+        if (signer != user) {
+            revert Errors.Edjuk8__InvalidSigner();
+        }
+    }
+
+    ////// CORE LOGIC FUNCTIONS //////
+
     function _registerUser(address user, string memory username) private {
         if (_user[user].author) {
             revert Errors.Edjuk8__AlreadyRegistered();
@@ -286,7 +277,6 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         if (edjuk8Token.balanceOf(user) < courseCreationFee) {
             revert Errors.Edjuk8__InsuficientTokenBalance();
         }
-        // implement: cannot have more than a certain number of courses
         if (_user[user].ownedCourses.length >= MAX_ALLOWED_COURSES) revert Errors.Edjuk8__UserMaxCourseExceeded();
 
         if (courseCreationFee > 0) {
@@ -358,7 +348,6 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
 
         if (sharesAmount == 0) revert Errors.SharesToCashInCannotBeZero();
 
-        // check if the user is the owner
         if (user == course.owner) {
             require(course.courseEarnings > 0, "No balance");
 
@@ -367,16 +356,6 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
             edjuk8Token.safeTransfer(user, course.courseEarnings);
         } else {
             require(course.shareEarnings > 0, "No balance");
-            // we cancel the user share listing on market place
-            // giving them back their share
-
-            // ---- I DONT THINK ITS NECESSARY TO CANCEL THEIR LISTING BECAUSE THE LISTING SHARE IS ALREADY LOCKED ----
-            // uint256 userListingId = _userActiveCourseListingId[user][courseId];
-            // if (userListingId > 0) {
-            //     shareMarketPlace.canceShareListing(userListingId);
-            //     _userActiveCourseListingId[user][courseId] = 0;
-            // }
-            // to get the % of the share amount
 
             uint256 totalShareHoldersShare = CREATION_SHARE - _userCourseShares[course.owner][courseId];
             uint256 cashInAmount = sharesAmount * course.shareEarnings / totalShareHoldersShare;
@@ -394,35 +373,22 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         }
     }
 
-    function _checkIsSigner(bytes32 structHash, uint8 v, bytes32 r, bytes32 s, address user) private view {
-        address signer = ECDSA.recover(_hashTypedDataV4(structHash), v, r, s);
-        if (signer != user) {
-            revert Errors.Edjuk8__InvalidSigner();
-        }
-    }
-
-    // }
-
     //////// GETTER FUNCTIONS ///////
 
-    // // try8 and and add paginaion to each to fetch by index and stuff
     function getAllCourses() external view returns (Types.Course[] memory) {
         return allCourses;
     }
 
-    // // // get coursse by Id
     function getCourseById(uint256 courseId) external view returns (Types.Course memory) {
         require(courseId > 0, "Invalid Course ID");
         uint256 courseIndex = courseId - 1;
         return allCourses[courseIndex];
     }
 
-    // // get user owned courses
     function getUserOwnedCourses(address _owner) external view returns (Types.Course[] memory) {
         return _user[_owner].ownedCourses;
     }
 
-    // user course share amount, their cash in amount
     function getUserCourseShareDetails(uint256 courseId, address user)
         external
         view
@@ -434,36 +400,12 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
             _userSharesLocked[user][courseId],
             _userActiveCourseListingId[user][courseId]
         );
-
-        // WE MIGHT BE ABLE TO CALCULATE THIS IN THE FORNTEND
-
-        // if (courseId > 0) {
-        //     uint256 courseIndex = courseId - 1;
-        //     uint256 userCourseShare = _userCourseShares[user][courseId];
-
-        //     bool isOwner = user == allCourses[courseIndex].owner ? true : false;
-
-        //     uint256 cashInAmount;
-        //     if (isOwner) {
-        //         cashInAmount = allCourses[courseIndex].courseEarnings;
-        //         return (userCourseShare, cashInAmount);
-        //     } else if (userCourseShare > 0) {
-        //         uint256 cashInBalance = allCourses[courseIndex].shareEarnings;
-        //         cashInAmount = userCourseShare * cashInBalance / 100e4;
-        //         return (userCourseShare, cashInAmount);
-        //     } else {
-        //         return (0, 0);
-        //     }
-        // } else {
-        //     revert Errors.Edjuk8__InvalidCourseId();
-        // }
     }
 
     function getCourseIdCounter() external view returns (uint256) {
         return courseIds;
     }
 
-    // get user details
     function getUserDetails(address user) external view returns (Types.User memory) {
         return _user[user];
     }

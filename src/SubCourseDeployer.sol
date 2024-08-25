@@ -14,19 +14,16 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {SubCourse} from "./SubCourse.sol";
 
 contract SubCourseDeployer is EIP712, ReentrancyGuard {
-    //
     ICourseHandler courseHandler;
     IERC20 edjuk8Token;
 
     uint256 MAX_ALLOWED_SUB_COURSE = 8;
-    uint256 MAX_PRICE = 100e18; // 100 edjuk8 tokens
+    uint256 MAX_PRICE = 100e18;
 
     address dev;
 
     mapping(address user => uint256 nonce) _nonces;
     mapping(uint256 courseId => uint256 subCourseId) _subCourseIdCounter;
-
-    // course Id to sub courses
     mapping(uint256 courseId => Types.SubCourseDetail[]) _subCourses;
 
     modifier courseMustExist(uint256 courseId) {
@@ -40,7 +37,8 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
         edjuk8Token = IERC20(edjuk8TokenAddress);
     }
 
-    // create a sub course
+    // External Function
+
     function deploySubCourse(Types.DeploySubCourse memory params)
         external
         courseMustExist(params.courseId)
@@ -83,7 +81,8 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
         );
     }
 
-    // deploy subcourse for users
+    //  Internal/Private Functions
+
     function _deploySubCourse(
         string memory name,
         string memory description,
@@ -93,7 +92,6 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
         uint256 courseId,
         address user
     ) private returns (uint256, address) {
-        // uint256 courseIndex = courseId - 1;
         Types.Course memory course = courseHandler.getCourseById(courseId);
 
         if (user != course.owner) revert Errors.Edjuk8__NotCourseOwner();
@@ -105,14 +103,15 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
         _subCourseIdCounter[courseId]++;
 
         uint256 subCourseId = _subCourseIdCounter[courseId];
-        // deploy the subcourse with tappropriate details
+
         address subCourseAddress =
-            _deployAndSaveSubCourse(name, description, imageURI, courseId, subCourseId, price, focusAreas);
+            _deployAndSaveSubCourse(user, name, description, imageURI, courseId, subCourseId, price, focusAreas);
 
         return (subCourseId, subCourseAddress);
     }
 
     function _deployAndSaveSubCourse(
+        address user,
         string memory name,
         string memory description,
         string memory imageURI,
@@ -128,13 +127,11 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
             courseId,
             subCourseId,
             price,
-            msg.sender,
+            user,
             focusAreas,
             address(courseHandler),
             address(edjuk8Token)
         );
-
-        // Types.SubCourseDetail memory subCourseDetail;
 
         _subCourses[courseId].push(
             Types.SubCourseDetail({
@@ -149,6 +146,8 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
 
         return address(deployedSubCourse);
     }
+
+    // Getter Functions
 
     function getSubCourses(uint256 courseId) external view returns (Types.SubCourseDetail[] memory) {
         if (courseId > 0) {
@@ -169,5 +168,13 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
         } else {
             revert Errors.Edjuk8__InvalidCourseId();
         }
+    }
+
+    function getUserNonce(address user) public view returns (uint256) {
+        return _nonces[user];
+    }
+
+    function getTypedDataHash(bytes32 structHash) external view returns (bytes32) {
+        return _hashTypedDataV4(structHash);
     }
 }

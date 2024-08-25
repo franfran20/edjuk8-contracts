@@ -3,6 +3,8 @@
 pragma solidity 0.8.24;
 
 library Types {
+    // CUSTOM TYPES
+
     struct Course {
         string name;
         string description;
@@ -60,13 +62,12 @@ library Types {
 
     struct Lesson {
         string name;
-        bool lessonType;
+        bool lessonType; // lessonType : true -> video && false -> article
         string gatedLessonURI;
         uint256 lessonLength;
         uint256 ID;
     }
 
-    // contemplating whether to put this into the database or leave here
     struct Review {
         uint8 rating;
         string comment;
@@ -74,6 +75,7 @@ library Types {
     }
 
     // FUNCTION PARAMS
+
     struct Register {
         string username;
     }
@@ -112,7 +114,7 @@ library Types {
         uint256 price;
     }
 
-    struct SellShareWIthSig {
+    struct SellShareWithSig {
         address user;
         uint256 courseId;
         uint256 sharesAmount;
@@ -190,13 +192,4 @@ library Types {
         bytes32 r;
         bytes32 s;
     }
-
-    //  function deploySubCourse(
-    //     string memory name,
-    //     string memory description,
-    //     string memory imageURI,
-    //     uint256 price,
-    //     string[] memory focusAreas,
-    //     uint256 courseId
-    // )
 }

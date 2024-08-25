@@ -183,61 +183,93 @@ contract SubCourseDeployerTest is BaseTest {
     ///////////////////////// With Sig Test /////////////////////////////
     /////////////////////////////////////////////////////////////////////
 
-    // struct RegisterWithSig {
-    //     address user;
-    //     string username;
-    //     uint256 deadline;
-    //     uint8 v;
-    //     bytes32 r;
-    //     bytes32 s;
-    // }
+    function testCreateSubCourseWithSig__DeploysSubCourseContract() public {
+        (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");
+        address userTwo = makeAddr("userTwo");
+        address userThree = makeAddr("userThree");
 
-    // function testRegisterUserWithSig__UpdatesTheUserDetailsAndUserNameTaken() public {
-    //     (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");
-    //     // address userTwo = makeAddr("userTwo");
+        uint256 courseIdOne = 1;
+        uint256 subCourseIdOne = 1;
+        uint256 subCoursePrice = 20e18;
 
-    //     uint256 deadline = block.timestamp + oneMinute;
-    //     uint256 userNonce = courseHandler.getUserDetails(userOne).nonce + 1;
+        _registerUser(usernameOne, userOne);
+        _createCourse(userOne);
+        // user2 -> 15 shares, user 3 -> 20 shares
+        _prepareUserTwoAndThreeWithShares(userOne, userTwo, userThree, courseIdOne);
 
-    //     vm.startPrank(userOne);
+        vm.startPrank(makeAddr("Relayer"));
+        subCourseDeployer.deploySubCourseWithSig(_prepareSigParams(userOne, userOneKey, subCoursePrice, courseIdOne));
+        vm.stopPrank();
 
-    //     Types.RegisterWithSig memory params =
-    //         Types.RegisterWithSig({user: userOne, username: usernameOne, deadline: deadline, v: 0, r: 0x00, s: 0x00});
+        Types.SubCourseDetail memory subCourseOne = subCourseDeployer.getSpecificSubCourse(courseIdOne, subCourseIdOne);
+        ISubCourse newlyCreatedSubCourse = ISubCourse(subCourseOne.subCourseAddress);
 
-    //     bytes32 structHash = MetaTx._registerStructHash(params, userNonce);
-    //     bytes32 digest = courseHandler.getTypedDataHash(structHash);
+        assertEq(newlyCreatedSubCourse.getEdjuk8Token(), address(edjuk8Token));
+        assertEq(newlyCreatedSubCourse.getCourseHandler(), address(courseHandler));
+        assertEq(newlyCreatedSubCourse.getDetails().owner, userOne);
+        assertEq(newlyCreatedSubCourse.getDetails().price, subCoursePrice);
+    }
 
-    //     (params.v, params.r, params.s) = vm.sign(userOneKey, digest);
+    function testCreateSubCourseWithSig__UpdatesTheSubCoursesDetailsInTheSubCourseDeployer() public {
+        (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");
+        address userTwo = makeAddr("userTwo");
+        address userThree = makeAddr("userThree");
 
-    //     courseHandler.registerUserWithSig(params);
-    //     vm.stopPrank();
+        uint256 courseIdOne = 1;
+        uint256 subCoursePrice = 20e18;
 
-    //     Types.User memory user = courseHandler.getUserDetails(userOne);
-    //     assertEq(user.username, usernameOne);
-    //     assertEq(user.author, true);
-    // }
+        _registerUser(usernameOne, userOne);
+        _createCourse(userOne);
+        // user2 -> 15 shares, user 3 -> 20 shares
+        _prepareUserTwoAndThreeWithShares(userOne, userTwo, userThree, courseIdOne);
 
-    function _prepareUserTwoAndThreeWithShares(address userOne, address userTwo, address userThree, uint256 courseId)
+        vm.startPrank(makeAddr("Relayer"));
+        uint256 FourSubCourses = 4;
+        for (uint256 i = 0; i < FourSubCourses; i++) {
+            subCourseDeployer.deploySubCourseWithSig(
+                _prepareSigParams(userOne, userOneKey, subCoursePrice, courseIdOne)
+            );
+        }
+        vm.stopPrank();
+
+        uint256 subCourseIdThree = 3;
+
+        Types.SubCourseDetail[] memory allSubCourses = subCourseDeployer.getSubCourses(courseIdOne);
+        Types.SubCourseDetail memory subCourseThree =
+            subCourseDeployer.getSpecificSubCourse(courseIdOne, subCourseIdThree);
+
+        assertEq(allSubCourses.length, FourSubCourses);
+        assertEq(subCourseThree.subCourseId, subCourseIdThree);
+        assertNotEq(subCourseThree.subCourseAddress, address(0));
+    }
+
+    function _prepareSigParams(address user, uint256 userPrivKey, uint256 subCoursePrice, uint256 courseId)
         private
-        returns (uint256)
+        view
+        returns (Types.DeploySubCourseWithSig memory)
     {
-        // user one sells 15 shares and user two buys
-        // user one sells 20 shares and user three buys
+        //// Signature Setup
+        uint256 deadline = block.timestamp + oneMinute;
+        uint256 userNonce = subCourseDeployer.getUserNonce(user) + 1;
 
-        uint256 sharesToSellUserTwo = 15e4;
-        uint256 sharesToSellUserThree = 20e4;
-        uint256 priceToSellShares = 5e18;
+        Types.DeploySubCourseWithSig memory params = Types.DeploySubCourseWithSig({
+            user: user,
+            name: subCourseName,
+            description: subCourseDescripton,
+            imageURI: imageURI,
+            price: subCoursePrice,
+            focusAreas: focusArea,
+            courseId: courseId,
+            deadline: deadline,
+            v: 0,
+            r: 0x00,
+            s: 0x00
+        });
 
-        uint256 listingId = 1;
-
-        _sellShare(courseId, sharesToSellUserTwo, priceToSellShares, userOne);
-        _buyShares(listingId, userTwo);
-
-        listingId++;
-
-        _sellShare(courseId, sharesToSellUserThree, priceToSellShares, userOne);
-        _buyShares(listingId, userThree);
-
-        return listingId;
+        bytes32 structHash = MetaTx._deploySubCourseStructHash(params, userNonce);
+        bytes32 digest = subCourseDeployer.getTypedDataHash(structHash);
+        (params.v, params.r, params.s) = vm.sign(userPrivKey, digest);
+        //////
+        return params;
     }
 }

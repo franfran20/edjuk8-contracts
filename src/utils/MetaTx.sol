@@ -6,8 +6,6 @@ import {Types} from "./Types.sol";
 import {Errors} from "./Errors.sol";
 
 library MetaTx {
-    // register
-
     bytes32 constant REGISTER_USER = keccak256("Register(address user,string username,uint256 nonce,uint256 deadline)");
 
     bytes32 constant CREATE_COURSE = keccak256(
@@ -29,17 +27,6 @@ library MetaTx {
     bytes32 constant DEPLOY_SUB_COURSE = keccak256(
         "DeploySubCourse(address user,uint256 courseId,string name,string description,string imageURI,uint256 price,string focusAreas,uint256 nonce,uint256 deadline)"
     );
-
-    // function deploySubCourse(
-    //     string memory name,
-    //     string memory description,
-    //     string memory imageURI,
-    //     uint256 price,
-    //     string memory focusAreas,
-    //     uint256 courseId
-    // ) external courseMustExist(courseId) {}
-
-    // cashInCourseShares(uint256 courseId, uint256 sharesAmount)
 
     function _registerStructHash(Types.RegisterWithSig memory params, uint256 nonce) public view returns (bytes32) {
         if (params.deadline <= block.timestamp) revert Errors.Edjuk8__InvalidSigDeadline();
@@ -70,7 +57,7 @@ library MetaTx {
         return structHash;
     }
 
-    function _sellSharesStructHash(Types.SellShareWIthSig memory params, uint256 nonce) public view returns (bytes32) {
+    function _sellSharesStructHash(Types.SellShareWithSig memory params, uint256 nonce) public view returns (bytes32) {
         if (block.timestamp > params.deadline) revert Errors.Edjuk8__InvalidSigDeadline();
         bytes32 structHash = keccak256(
             abi.encode(
@@ -128,13 +115,4 @@ library MetaTx {
         );
         return structHash;
     }
-
-    // function deploySubCourse(
-    //     string memory name,
-    //     string memory description,
-    //     string memory imageURI,
-    //     uint256 price,
-    //     string memory focusAreas,
-    //     uint256 courseId
-    // ) external courseMustExist(courseId) {}
 }

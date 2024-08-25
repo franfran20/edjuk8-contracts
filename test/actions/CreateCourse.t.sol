@@ -7,6 +7,8 @@ import {Types} from "../../src/utils/Types.sol";
 import {Errors} from "../../src/utils/Errors.sol";
 import {MetaTx} from "../../src/utils/MetaTx.sol";
 
+import {console} from "forge-std/console.sol";
+
 contract CreateCourseTest is BaseTest {
     function testRegisterUser__UpdatesTheUserDetailsAndUserNameTaken() public {
         address userOne = makeAddr("userOne");
@@ -83,6 +85,8 @@ contract CreateCourseTest is BaseTest {
 
         Types.Course memory courseThree = courseHandler.getCourseById(courseIdThree);
 
+        console.log(courseThree.courseURI);
+
         assertEq(courseHandler.courseIds(), 4);
         assertEq(courseThree.ID, courseIdThree);
         assertEq(courseThree.ownerName, usernameOne);
@@ -117,46 +121,76 @@ contract CreateCourseTest is BaseTest {
         assertEq(userCourses.length, 2);
     }
 
-    // Look out
-    // userCourseShares
-    // isShareHolder
-    // user ownedCourses
-
     /////////////////////////////////////////////////////////////////////
     ///////////////////////// With Sig Test /////////////////////////////
     /////////////////////////////////////////////////////////////////////
 
-    // struct RegisterWithSig {
-    //     address user;
-    //     string username;
-    //     uint256 deadline;
-    //     uint8 v;
-    //     bytes32 r;
-    //     bytes32 s;
-    // }
+    function testCreateCourseWithSig__UpdatesTheCourseIdCounterAndPoplatesTheCourseDetails() public {
+        (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");
+        uint256 courseIdThree = 3;
 
-    // function testRegisterUserWithSig__UpdatesTheUserDetailsAndUserNameTaken() public {
-    //     (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");
-    //     // address userTwo = makeAddr("userTwo");
+        _registerUser(usernameOne, userOne);
 
-    //     uint256 deadline = block.timestamp + oneMinute;
-    //     uint256 userNonce = courseHandler.getUserDetails(userOne).nonce + 1;
+        vm.startPrank(makeAddr("Relayerrrr"));
+        for (uint256 i = 0; i < 4; i++) {
+            courseHandler.createCourseWithSig(_prepareSigParams(userOne, userOneKey));
+        }
+        vm.stopPrank();
 
-    //     vm.startPrank(userOne);
+        Types.Course memory courseThree = courseHandler.getCourseById(courseIdThree);
 
-    //     Types.RegisterWithSig memory params =
-    //         Types.RegisterWithSig({user: userOne, username: usernameOne, deadline: deadline, v: 0, r: 0x00, s: 0x00});
+        assertEq(courseHandler.courseIds(), 4);
+        assertEq(courseThree.ID, courseIdThree);
+        assertEq(courseThree.ownerName, usernameOne);
+        assertEq(courseThree.owner, userOne);
+        assertEq(courseThree.shareHolders, 1);
+    }
 
-    //     bytes32 structHash = MetaTx._registerStructHash(params, userNonce);
-    //     bytes32 digest = courseHandler.getTypedDataHash(structHash);
+    function testCreateCourseWithSig__UpdatesTheCourseAndOwnerShareDetails() public {
+        (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");
+        uint256 courseIdOne = 1;
 
-    //     (params.v, params.r, params.s) = vm.sign(userOneKey, digest);
+        _registerUser(usernameOne, userOne);
 
-    //     courseHandler.registerUserWithSig(params);
-    //     vm.stopPrank();
+        vm.startPrank(makeAddr("The Relayerr"));
+        // create two courses
+        courseHandler.createCourseWithSig(_prepareSigParams(userOne, userOneKey));
+        courseHandler.createCourseWithSig(_prepareSigParams(userOne, userOneKey));
+        vm.stopPrank();
 
-    //     Types.User memory user = courseHandler.getUserDetails(userOne);
-    //     assertEq(user.username, usernameOne);
-    //     assertEq(user.author, true);
-    // }
+        (bool isShareHolder, uint256 shareAmount,,) = courseHandler.getUserCourseShareDetails(courseIdOne, userOne);
+        Types.Course[] memory userCourses = courseHandler.getUserOwnedCourses(userOne);
+
+        assertEq(isShareHolder, true);
+        assertEq(shareAmount, courseHandler.CREATION_SHARE());
+        assertEq(userCourses.length, 2);
+    }
+
+    function _prepareSigParams(address user, uint256 userPrivKey)
+        private
+        view
+        returns (Types.CreateCourseWithSig memory)
+    {
+        //// Signature Setup
+        uint256 deadline = block.timestamp + oneMinute;
+        uint256 userNonce = courseHandler.getUserDetails(user).nonce + 1;
+
+        Types.CreateCourseWithSig memory params = Types.CreateCourseWithSig({
+            user: user,
+            name: courseNameOne,
+            description: courseDescriptionOne,
+            imageURI: imageURI,
+            genre: softwareEng,
+            deadline: deadline,
+            v: 0,
+            r: 0x00,
+            s: 0x00
+        });
+
+        bytes32 structHash = MetaTx._createCourseStructHash(params, userNonce);
+        bytes32 digest = courseHandler.getTypedDataHash(structHash);
+        (params.v, params.r, params.s) = vm.sign(userPrivKey, digest);
+        //////
+        return params;
+    }
 }

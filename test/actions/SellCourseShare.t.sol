@@ -196,70 +196,71 @@ contract SellCourseShareTest is BaseTest {
         assertEq(userActiveListingId, 3);
     }
 
-    // Look out
-    // userCourseShares
-    // isShareHolder
-    // user ownedCourses
-
     /////////////////////////////////////////////////////////////////////
     ///////////////////////// With Sig Test /////////////////////////////
     /////////////////////////////////////////////////////////////////////
 
-    // struct RegisterWithSig {
-    //     address user;
-    //     string username;
-    //     uint256 deadline;
-    //     uint8 v;
-    //     bytes32 r;
-    //     bytes32 s;
-    // }
+    function testSellCourseShareWithSig__OnShareMarketPlace__UpdatesTheSaleListing() public {
+        (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");
+        address userTwo = makeAddr("userTwo");
+        address userThree = makeAddr("userThree");
 
-    // function testRegisterUserWithSig__UpdatesTheUserDetailsAndUserNameTaken() public {
-    //     (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");
-    //     // address userTwo = makeAddr("userTwo");
+        uint256 courseIdOne = 1;
+        uint256 sharesToSell = 10e4;
+        uint256 priceToSell = 10e18; // price in edjuk-8 token
 
-    //     uint256 deadline = block.timestamp + oneMinute;
-    //     uint256 userNonce = courseHandler.getUserDetails(userOne).nonce + 1;
+        _registerUser(usernameOne, userOne);
+        _createCourse(userOne);
 
-    //     vm.startPrank(userOne);
+        _prepareUserTwoAndThreeWithShares(userOne, userTwo, userThree, courseIdOne);
 
-    //     Types.RegisterWithSig memory params =
-    //         Types.RegisterWithSig({user: userOne, username: usernameOne, deadline: deadline, v: 0, r: 0x00, s: 0x00});
+        vm.startPrank(makeAddr("Rellayer"));
+        courseHandler.sellCourseShareWithSig(
+            _prepareSigParams(userOne, userOneKey, sharesToSell, priceToSell, courseIdOne)
+        );
+        vm.stopPrank();
 
-    //     bytes32 structHash = MetaTx._registerStructHash(params, userNonce);
-    //     bytes32 digest = courseHandler.getTypedDataHash(structHash);
+        Types.ShareListing memory listing = shareMarketPlace.getShareListingById(shareMarketPlace.shareListings());
 
-    //     (params.v, params.r, params.s) = vm.sign(userOneKey, digest);
+        (,,, uint256 userActiveListingId) = courseHandler.getUserCourseShareDetails(courseIdOne, userOne);
 
-    //     courseHandler.registerUserWithSig(params);
-    //     vm.stopPrank();
+        assertEq(listing.seller, userOne);
+        assertEq(listing.courseId, courseIdOne);
+        assertEq(listing.shareAmount, sharesToSell);
+        assertEq(listing.ID, 3);
+        assertEq(userActiveListingId, 3);
+    }
 
-    //     Types.User memory user = courseHandler.getUserDetails(userOne);
-    //     assertEq(user.username, usernameOne);
-    //     assertEq(user.author, true);
-    // }
+    //////////////////////////////////////////////////////////////////////////
+    ////////////////////////// Private/Internal //////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
 
-    function _prepareUserTwoAndThreeWithShares(address userOne, address userTwo, address userThree, uint256 courseId)
-        private
-        returns (uint256)
-    {
-        // user one sells 15 shares and user two buys
-        // user one sells 20 shares and user three buys
+    function _prepareSigParams(
+        address user,
+        uint256 userPrivKey,
+        uint256 sharesToSell,
+        uint256 priceToSell,
+        uint256 courseId
+    ) private view returns (Types.SellShareWithSig memory) {
+        //// Signature Setup
+        uint256 deadline = block.timestamp + oneMinute;
+        uint256 userNonce = courseHandler.getUserDetails(user).nonce + 1;
 
-        uint256 sharesToSellUserTwo = 15e4;
-        uint256 sharesToSellUserThree = 20e4;
-        uint256 priceToSellShares = 5e18;
+        Types.SellShareWithSig memory params = Types.SellShareWithSig({
+            user: user,
+            courseId: courseId,
+            sharesAmount: sharesToSell,
+            price: priceToSell,
+            deadline: deadline,
+            v: 0,
+            r: 0x00,
+            s: 0x00
+        });
 
-        uint256 listingId = 1;
-
-        _sellShare(courseId, sharesToSellUserTwo, priceToSellShares, userOne);
-        _buyShares(listingId, userTwo);
-
-        listingId++;
-
-        _sellShare(courseId, sharesToSellUserThree, priceToSellShares, userOne);
-        _buyShares(listingId, userThree);
-
-        return listingId;
+        bytes32 structHash = MetaTx._sellSharesStructHash(params, userNonce);
+        bytes32 digest = courseHandler.getTypedDataHash(structHash);
+        (params.v, params.r, params.s) = vm.sign(userPrivKey, digest);
+        //////
+        return params;
     }
 }

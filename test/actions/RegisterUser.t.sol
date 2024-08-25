@@ -64,15 +64,9 @@ contract RegisterUserTest is BaseTest {
         vm.stopPrank();
     }
 
-    // With Sig
-    // struct RegisterWithSig {
-    //     address user;
-    //     string username;
-    //     uint256 deadline;
-    //     uint8 v;
-    //     bytes32 r;
-    //     bytes32 s;
-    // }
+    ////////////////////////////////////////////////
+    ////////////// With Sig Test ///////////////////
+    ////////////////////////////////////////////////
 
     function testRegisterUserWithSig__UpdatesTheUserDetailsAndUserNameTaken() public {
         (address userOne, uint256 userOneKey) = makeAddrAndKey("userOne");

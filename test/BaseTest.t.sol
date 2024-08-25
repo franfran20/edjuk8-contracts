@@ -123,6 +123,13 @@ contract BaseTest is Test {
         vm.stopPrank();
     }
 
+    function _cancelShareListing(uint256 listingId, address user) internal {
+        vm.startPrank(user);
+        // cancel share listing
+        shareMarketPlace.canceShareListing(listingId);
+        vm.stopPrank();
+    }
+
     // Edjus 8 Token Test Helpers
 
     function _approveEdjuk8Token(address spender, uint256 value, address user) internal {
@@ -168,5 +175,31 @@ contract BaseTest is Test {
         vm.startPrank(student);
         subCourse.enroll();
         vm.stopPrank();
+    }
+
+    // Helpers
+
+    function _prepareUserTwoAndThreeWithShares(address userOne, address userTwo, address userThree, uint256 courseId)
+        internal
+        returns (uint256)
+    {
+        // user one sells 15 shares and user two buys
+        // user one sells 20 shares and user three buys
+
+        uint256 sharesToSellUserTwo = 15e4;
+        uint256 sharesToSellUserThree = 20e4;
+        uint256 priceToSellShares = 5e18;
+
+        uint256 listingId = 1;
+
+        _sellShare(courseId, sharesToSellUserTwo, priceToSellShares, userOne);
+        _buyShares(listingId, userTwo);
+
+        listingId++;
+
+        _sellShare(courseId, sharesToSellUserThree, priceToSellShares, userOne);
+        _buyShares(listingId, userThree);
+
+        return listingId;
     }
 }

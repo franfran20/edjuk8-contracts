@@ -54,52 +54,31 @@ interface ICourseHandler {
 
     function createCourseWithSig(Types.CreateCourseWithSig memory params) external;
 
-    // // calls the market place contract
     function sellCourseShare(Types.SellShare memory params) external;
 
-    function sellCourseShareWithSig(Types.SellShareWIthSig memory params) external;
+    function sellCourseShareWithSig(Types.SellShareWithSig memory params) external;
 
-    // // gives share back to thhe owner and claim rewards
     function cashInCourseShares(Types.CashInCourseShare memory params) external;
 
-    // // gives share back to thhe owner and claim rewards
     function cashInCourseSharesWithSig(Types.CashInCourseShareWithSig memory params) external;
-
-    // deploy subcourse for users
-    // function deploySubCourse(Types.DeploySubCourse memory params) external;
-
-    // deploy subcourse for users
-    // function deploySubCourseWithSig(Types.DeploySubCourseWithSig memory params) external;
 
     function shareUpdate(address seller, address buyer, uint256 courseId, uint256 sharesAmount) external;
 
     function updateSubCourseEnrollment(uint256 courseId, uint256 enrollmentPrice) external;
 
-    // // Getter Functions
+    // Getter Functions
 
     function getAllCourses() external view returns (Types.Course[] memory);
 
-    // // // get coursse by Id
     function getCourseById(uint256 courseId) external view returns (Types.Course memory);
 
     function getUserOwnedCourses(address _owner) external view returns (Types.Course[] memory);
 
-    // returns: is share holder, share amount, share amount locked, active listing id
+    // returns: isShareHolder, userShareAmount, userSharesLocked, userActiveListingId
     function getUserCourseShareDetails(uint256 courseId, address user)
         external
         view
         returns (bool, uint256, uint256, uint256);
 
     function getCourseIdCounter() external view returns (uint256);
-
-    // Events
-
-    // Note User cannnot buy his own shares
-    // Errors
 }
-
-// // get all sub coursess
-// function getSubCourses(uint256 courseId) external view returns (SubCourse[] memory);
-
-// // get all users learnings
-// function getMyLearnings(address user) external view returns (SubCourse[] memory);
