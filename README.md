@@ -15,8 +15,6 @@ Here are some of the core conecpts that drive the vision of edjuk-8
 
 The Edjuk8 token is an ERC-20 token used to facilitate payments within the Edjuk8 platform.
 
-<!-- Course Diagram -->
-![edjuk8 course diagram](https://salmon-thick-gazelle-208.mypinata.cloud/ipfs/Qmf8U9yhFw2eoibfAXE2RGf6b7omRDzxuR8v3tuZzjmwF7/edjuk8-course-overview.png)
 
 ### Courses
 
@@ -28,8 +26,10 @@ Courses provide a comprehensive overview of a particular area of interest and ar
 accordingly.
 
 
+<!-- Course Diagram -->
+![edjuk8 course diagram](https://salmon-thick-gazelle-208.mypinata.cloud/ipfs/Qmf8U9yhFw2eoibfAXE2RGf6b7omRDzxuR8v3tuZzjmwF7/edjuk8-course-overview.png)
 
-![edjuk8 course share diagram](https://salmon-thick-gazelle-208.mypinata.cloud/ipfs/Qmf8U9yhFw2eoibfAXE2RGf6b7omRDzxuR8v3tuZzjmwF7/subcourse-lesson-share-flow.png)
+
 
 ### Course Shares
 Courses on Edjuk8 have what we call course shares, which are fixed at 100 (with 4 decimal places in the smart contract). This 100 represents 100% of the course shares, which are initially given entirely to the creator upon course creation. These shares effectively assetize courses, allowing an educator's course shares to enter the market to be sold, resold, and purchased.
@@ -60,9 +60,7 @@ Each subcourse is a smart contract deployed to its own unique address, containin
 
 Subcourses are created to cover specific subtopics within a larger field of study that are significant enough to stand alone. For example, a course on data science could have subcourses on topics like natural language processing, data engineering and pipelining, and machine learning. At the time of deployment, each course is limited to a maximum of 8 subcourses.
 
-
-<!-- Course Diagram -->
-![edjuk8 subcourse and lesson diagram]()
+![edjuk8 course share diagram](https://salmon-thick-gazelle-208.mypinata.cloud/ipfs/Qmf8U9yhFw2eoibfAXE2RGf6b7omRDzxuR8v3tuZzjmwF7/subcourse-lesson-share-flow.png)
 
 ### Lessons
 
