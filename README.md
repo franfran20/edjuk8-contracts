@@ -1,3 +1,6 @@
+## current still writing readme...
+### come back soon ;D
+
 # Edjuk 8
 
 - Edjuk-8 pronounced as educate
