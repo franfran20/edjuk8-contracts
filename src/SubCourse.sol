@@ -100,7 +100,7 @@ contract SubCourse is ISubCourse {
         subCourseStats.studentsEnrolled += 1;
         subCourseStats.earned += subCourse.price;
 
-        courseHandler.updateSubCourseEnrollment(subCourse.courseId, subCourse.price);
+        courseHandler.updateSubCourseEnrollment(subCourse.courseId, subCourse.price, msg.sender);
     }
 
     function dropReview(uint8 rating, string memory comment) external {

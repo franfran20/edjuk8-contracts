@@ -25,6 +25,7 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
     mapping(address user => uint256 nonce) _nonces;
     mapping(uint256 courseId => uint256 subCourseId) _subCourseIdCounter;
     mapping(uint256 courseId => Types.SubCourseDetail[]) _subCourses;
+    mapping(uint256 courseId => mapping(address subCourse => bool)) _subCourseExists;
 
     modifier courseMustExist(uint256 courseId) {
         require(courseId <= courseHandler.getCourseIdCounter(), "Non Existent Course");
@@ -144,6 +145,8 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
             })
         );
 
+        _subCourseExists[courseId][address(deployedSubCourse)] = true;
+
         return address(deployedSubCourse);
     }
 
@@ -155,6 +158,10 @@ contract SubCourseDeployer is EIP712, ReentrancyGuard {
         } else {
             revert Errors.Edjuk8__InvalidCourseId();
         }
+    }
+
+    function subCourseExists(uint256 courseId, address subCourse) external view returns (bool) {
+        return _subCourseExists[courseId][subCourse];
     }
 
     function getSpecificSubCourse(uint256 courseId, uint256 subCourseId)

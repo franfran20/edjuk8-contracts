@@ -5,6 +5,7 @@ pragma solidity 0.8.24;
 import {ICourseHandler} from "./interfaces/ICourseHandler.sol";
 import {IShareMarketPlace} from "./interfaces/IShareMarketPlace.sol";
 import {SubCourseDeployer} from "./SubCourseDeployer.sol";
+import {SubCourse} from "../src/SubCourse.sol";
 
 import {Types} from "./utils/Types.sol";
 import {MetaTx} from "./utils/MetaTx.sol";
@@ -28,7 +29,7 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
 
     uint256 public constant CREATION_SHARE = 100e4;
     uint256 constant MAX_USERNAME_CHAR = 21;
-    string BASE_COURSE_URI = "https://edjuk8-stuff/learn/courses/";
+    string BASE_COURSE_URI = "edjuk8-git-main-franfran20s-projects.vercel.app";
 
     uint256 public courseIds;
     uint256 courseCreationFee;
@@ -47,6 +48,8 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
     mapping(address user => mapping(uint256 courseId => bool shareHolder)) _isShareHolder;
 
     mapping(address user => mapping(uint256 courseId => uint256 listingId)) _userActiveCourseListingId;
+
+    mapping(address => Types.SubCourseDetail[]) _myLearnings;
 
     modifier courseMustExist(uint256 courseId) {
         require(courseId <= courseIds, "Non Existent Course");
@@ -160,7 +163,10 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
 
     /// ONLY CALLABLE BY THE SUBCOURSE OF A COURSE ///////
 
-    function updateSubCourseEnrollment(uint256 courseId, uint256 enrollmentPrice) external courseMustExist(courseId) {
+    function updateSubCourseEnrollment(uint256 courseId, uint256 enrollmentPrice, address user)
+        external
+        courseMustExist(courseId)
+    {
         bool callerAllowed = _checkCallerIsASubCourseForTheCourseId(courseId);
         if (!callerAllowed) revert Errors.Edjuk8__CallerIsNotSubCourse();
 
@@ -173,6 +179,19 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         allCourses[courseIndex].courseEarnings += ((ownerShare * enrollmentPrice) / (100e4));
         allCourses[courseIndex].shareEarnings += ((shareHolders * enrollmentPrice) / (100e4));
         allCourses[courseIndex].studentsEnrolled += 1;
+
+        Types.SubCourse memory subCourse = SubCourse(msg.sender).getDetails();
+
+        _myLearnings[user].push(
+            Types.SubCourseDetail({
+                subCourseAddress: msg.sender,
+                name: subCourse.name,
+                description: subCourse.description,
+                imageURI: subCourse.imageURI,
+                createdAt: block.timestamp,
+                subCourseId: courseId
+            })
+        );
     }
 
     //////  INTERNAL/PRIVATE FUNCTIONS //////
@@ -389,6 +408,10 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         return _user[_owner].ownedCourses;
     }
 
+    function getUserLearnings(address user) external view returns (Types.SubCourseDetail[] memory) {
+        return _myLearnings[user];
+    }
+
     function getUserCourseShareDetails(uint256 courseId, address user)
         external
         view
@@ -400,6 +423,31 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
             _userSharesLocked[user][courseId],
             _userActiveCourseListingId[user][courseId]
         );
+    }
+
+    function getCashInAmount(address user, uint256 courseId, uint256 sharesAmount) external view returns (uint256) {
+        if (courseId > courseIds || courseId == 0) return 0;
+
+        address courseOwner = allCourses[courseId - 1].owner;
+        if (courseOwner == user) return allCourses[courseId - 1].courseEarnings;
+
+        uint256 totalShareHoldersShare = CREATION_SHARE - _userCourseShares[courseOwner][courseId];
+        uint256 shareEarnings = allCourses[courseId - 1].shareEarnings;
+
+        if (shareEarnings == 0) return 0;
+        uint256 cashInAmount = sharesAmount * allCourses[courseId - 1].shareEarnings / totalShareHoldersShare;
+
+        return cashInAmount;
+    }
+
+    function getCourseExist(uint256 courseId) external view returns (bool) {
+        if (courseId == 0) {
+            return false;
+        } else if (courseId <= courseIds) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function getCourseIdCounter() external view returns (uint256) {
@@ -414,3 +462,6 @@ contract CourseHandler is ICourseHandler, ReentrancyGuard, EIP712 {
         return _hashTypedDataV4(structHash);
     }
 }
+
+// added to subcourse deployer
+// added to course handler

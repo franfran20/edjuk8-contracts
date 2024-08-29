@@ -74,6 +74,19 @@ library Types {
         address user;
     }
 
+    struct ShareListing {
+        address seller;
+        uint256 courseId;
+        uint256 shareAmount;
+        uint256 totalPrice;
+        string courseName;
+        string courseOwner;
+        string imageURI;
+        bool valid;
+        address purchased;
+        uint256 ID;
+    }
+
     // FUNCTION PARAMS
 
     struct Register {
@@ -123,19 +136,6 @@ library Types {
         uint8 v;
         bytes32 r;
         bytes32 s;
-    }
-
-    struct ShareListing {
-        address seller;
-        uint256 courseId;
-        uint256 shareAmount;
-        uint256 totalPrice;
-        string courseName;
-        string courseOwner;
-        string imageURI;
-        bool valid;
-        address purchased;
-        uint256 ID;
     }
 
     struct TransferShare {

@@ -64,7 +64,7 @@ interface ICourseHandler {
 
     function shareUpdate(address seller, address buyer, uint256 courseId, uint256 sharesAmount) external;
 
-    function updateSubCourseEnrollment(uint256 courseId, uint256 enrollmentPrice) external;
+    function updateSubCourseEnrollment(uint256 courseId, uint256 enrollmentPrice, address user) external;
 
     // Getter Functions
 

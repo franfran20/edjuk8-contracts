@@ -228,7 +228,7 @@ contract SubCourseActionTest is BaseTest {
         // expect revert from caller that is not subcourse
         vm.startPrank(address(shareMarketPlace));
         vm.expectRevert(Errors.Edjuk8__CallerIsNotSubCourse.selector);
-        courseHandler.updateSubCourseEnrollment(courseIdOne, subCoursePrice);
+        courseHandler.updateSubCourseEnrollment(courseIdOne, subCoursePrice, address(shareMarketPlace));
         vm.stopPrank();
 
         vm.startPrank(student);
