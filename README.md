@@ -90,5 +90,5 @@ Educators can further enhance this by conducting exams on an external platform, 
 ### Links
 
 1. Youtube Video - https://www.youtube.com/watch?v=Ld1VdIMviu8
-2. Frontend Demo - https://edjuk8-git-main-franfran20s-projects.vercel.app/
+2. Frontend Demo -https://edjuk8.vercel.app/
 3. Smart contracts repo - https://github.com/franfran20/savesphere_contracts
