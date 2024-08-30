@@ -4,7 +4,7 @@ Edjuk-8 (pronounced as educate) is an educational platform aimed at enhancing th
 
 
 <!-- edjuk8 image overview here -->
-![Edjuk8 Overview](https://salmon-thick-gazelle-208.mypinata.cloud/ipfs/Qmf8U9yhFw2eoibfAXE2RGf6b7omRDzxuR8v3tuZzjmwF7/edjuk8-overview.png)
+![Edjuk8 Overview](/images/edjuk8-overview.png)
 
 
 ## Core Concepts On Edjuk-8
@@ -27,7 +27,7 @@ accordingly.
 
 
 <!-- Course Diagram -->
-![edjuk8 course diagram](https://salmon-thick-gazelle-208.mypinata.cloud/ipfs/Qmf8U9yhFw2eoibfAXE2RGf6b7omRDzxuR8v3tuZzjmwF7/edjuk8-course-overview.png)
+![edjuk8 course diagram](/images/edjuk8-course-overview.png)
 
 
 
@@ -60,7 +60,7 @@ Each subcourse is a smart contract deployed to its own unique address, containin
 
 Subcourses are created to cover specific subtopics within a larger field of study that are significant enough to stand alone. For example, a course on data science could have subcourses on topics like natural language processing, data engineering and pipelining, and machine learning. At the time of deployment, each course is limited to a maximum of 8 subcourses.
 
-![edjuk8 course share diagram](https://salmon-thick-gazelle-208.mypinata.cloud/ipfs/Qmf8U9yhFw2eoibfAXE2RGf6b7omRDzxuR8v3tuZzjmwF7/subcourse-lesson-share-flow.png)
+![edjuk8 course share diagram](/images/subcourse-lesson-share-flow.png)
 
 ### Lessons
 
